@@ -107,7 +107,13 @@ function App() {
               <article className="overview-card">
                 <div>
                   <p>Current fruit selection</p>
-                  <strong>Not configured</strong>
+                  <strong>
+                    {latest?.fruit && latest.fruit !== "UNKNOWN"
+                      ? latest.fruit
+                      : latest?.fruitCode
+                        ? `Fruit code ${latest.fruitCode}`
+                        : "Waiting for switch data"}
+                  </strong>
                 </div>
               </article>
               <article className="overview-card">
