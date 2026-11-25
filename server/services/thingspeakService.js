@@ -23,7 +23,21 @@ async function requestThingSpeak(path, options = {}) {
     });
   }
 
-  const response = await fetch(url);
+  const timeoutMs = Number(process.env.THINGSPEAK_TIMEOUT_MS) || 10000;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response;
+  try {
+    response = await fetch(url, { signal: controller.signal });
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error(`ThingSpeak request timed out after ${timeoutMs}ms`);
+    }
+    throw new Error(`ThingSpeak request failed: ${error.message}`);
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     throw new Error(`ThingSpeak returned HTTP ${response.status}`);
@@ -41,23 +55,38 @@ async function requestThingSpeak(path, options = {}) {
 function normalizeFeed(feed) {
   if (!feed) return null;
 
-  const stageNumber = Number(feed.field6);
+  const numberFromField = (field) => {
+    if (field === null || field === undefined || field === "") return null;
+    const value = Number(field);
+    return Number.isFinite(value) ? value : null;
+  };
+  const stageNumber = numberFromField(feed.field6);
 
   const stages = {
     0: "RAW",
     1: "RIPE",
     2: "ROTTEN",
   };
+  const fruitCodes = {
+    1: "BANANA",
+    2: "TOMATO",
+    3: "MANGO",
+  };
+  const fruitCode = numberFromField(feed.field7);
+  const fruit = fruitCodes[fruitCode] || "UNKNOWN";
 
   return {
     createdAt: feed.created_at,
-    temperature: Number(feed.field1),
-    humidity: Number(feed.field2),
-    mq3: Number(feed.field3),
-    mq135: Number(feed.field4),
-    ripenessScore: Number(feed.field5),
+    temperature: numberFromField(feed.field1),
+    humidity: numberFromField(feed.field2),
+    mq3: numberFromField(feed.field3),
+    mq135: numberFromField(feed.field4),
+    ripenessScore: numberFromField(feed.field5),
     stageNumber,
     stage: stages[stageNumber] || "UNKNOWN",
+    fruitCode,
+    fruit,
+    classificationSource: "ESP32_RULE_BASED_FIELD6",
   };
 }
 
