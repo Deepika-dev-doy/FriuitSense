@@ -24,3 +24,16 @@ export async function getSensorHistory(results = 100) {
   });
   return response.data;
 }
+
+export async function getNotificationStatus() {
+  const response = await sensorApi.get("/sensor-data/notifications/status");
+  return response.data;
+}
+
+export async function sendTestNotification(reading) {
+  const response = await sensorApi.post(
+    "/sensor-data/notifications/test",
+    reading
+  );
+  return response.data;
+}
