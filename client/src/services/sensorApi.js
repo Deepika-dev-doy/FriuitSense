@@ -1,7 +1,15 @@
 import axios from "axios";
 
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const normalizedBaseUrl = configuredBaseUrl
+  ?.replace(/\/$/, "")
+  .replace(/\/api$/, "");
+const baseURL = normalizedBaseUrl
+  ? `${normalizedBaseUrl}/api`
+  : "https://friuitsense-backend.onrender.com/api";
+
 const sensorApi = axios.create({
-  baseURL: "/api",
+  baseURL,
   timeout: 20000,
 });
 
